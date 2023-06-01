@@ -21,6 +21,20 @@ function backPage() {
     window.location.href = "cart.html"
 }
 
+function getProductInfo(productId, optionId) {
+    let productList = JSON.parse(localStorage.getItem('listProducts'));
+    for (let i in productList) {
+        if (productList[i].id == productId) {
+            for (let j in productList[i].options) {
+                if (optionId ==  productList[i].options[j].id) {
+                    productList[i].imgOption = productList[i].options[j].icon;
+                    break;
+                }
+            }
+            return productList[i]
+        }
+    }
+}
 // Function show ra những sản phẩm đã thêm vào giỏ hàng 
 function showCartUser() {
     let idLogin = localStorage.getItem("checkLogin");
@@ -34,19 +48,19 @@ function showCartUser() {
         let cartUser = user.cartUser;
         let result = "";
         for (let n = 0; n < cartUser.length; n++) {
-
+            console.log("cartUser[n]", cartUser[n])
             result +=
                 `
                     
                 <div class="product-detail">
                     <div class="img">
-                        <img src="${cartUser[n].img}" alt="">
+                        <img src="../${getProductInfo(cartUser[n].productId, cartUser[n].idOption).imgOption}" alt="">
                     </div>
                     <div class="inforItem">
-                        <p>${cartUser[n].name}</p>
-                        <span> ${cartUser[n].quantity} / ${USDollar.format(cartUser[n].price)}</span> <br>
+                        <p>${getProductInfo(cartUser[n].productId, cartUser[n].idOption).name}</p>
+                        <span> ${cartUser[n].quantity} / ${USDollar.format(getProductInfo(cartUser[n].productId, cartUser[n].idOption).price)}</span> <br>
                        
-                        <span class = "subtotal">Subtotal :${USDollar.format(cartUser[n].price * cartUser[n].quantity)}</span><br>
+                        <span class = "subtotal">Subtotal :${USDollar.format(getProductInfo(cartUser[n].productId, cartUser[n].idOption).price * cartUser[n].quantity)}</span><br>
                     </div>
                 </div>
                  `
@@ -66,11 +80,14 @@ function totalPrice() {
 
     let cartUser = user.cartUser;
 
-    let totalPrice = cartUser.reduce((totalPrice, curreValue) => {
-        return totalPrice += curreValue.quantity * curreValue.price;
-    }, 0)
-    console.log(totalPrice);
+    let totalPrice = 0;
+    for (let i in cartUser) {
+        totalPrice += getProductInfo(cartUser[i].productId, cartUser[i].idOption).price * cartUser[i].quantity;
+    }
     document.querySelector(".totalPrice").innerHTML = `Subtotal : ${USDollar.format(totalPrice)} `
+    // showCartUser()
+
+
 }
 totalPrice()
 
@@ -98,30 +115,45 @@ function checkInfor() {
     // }
     // setTimeout(changePage, 2000)
 }
-function getProductLocal(localProductList, productId) {
-    console.log("asdasdasd", localProductList, productId);
-    for (let i in  localProductList) {
-        if (localProductList[i].id == productId) {
-            return localProductList[i]
+
+
+function checkStock(userCart) {
+    // check tồn kho
+    let productList = JSON.parse(localStorage.getItem('listProducts'))
+    for (let i in productList) {
+        for (let j in userCart) {
+            if (userCart[j].productId == productList[i].id) {
+                for (let k in productList[i].options) {
+                    if (userCart[j].idOption == productList[i].options[k].id) {
+                       if (userCart[j].quantity > productList[i].options[k].stock) {
+                            return [false,productList[i].name];
+                       };
+                    }
+                }
+                return [true,productList[i].name];
+            }
         }
     }
-    return false
 }
-function checkCart(localProductList, userCarts) {
-    for (let i in userCarts) {
-        console.log("id product", userCarts[i])
-        let product = getProductLocal(localProductList, userCarts[i].id);
-        console.log("kiem tra sp trong khop", product)
-        console.log("kiem tra sp minh mua",  userCarts[i])
-        if (!product) {
-            return false
-        }
-        if (userCarts[i].quantity > temp.stock ) {
-            return false
+
+function updateStock(userCart) {
+    // check tồn kho
+    let productList = JSON.parse(localStorage.getItem('listProducts'))
+    for (let i in productList) {
+        for (let j in userCart) {
+            if (userCart[j].productId == productList[i].id) {
+                for (let k in productList[i].options) {
+                    if (userCart[j].idOption == productList[i].options[k].id) {
+                        productList[i].options[k].stock -= userCart[j].quantity;
+                        localStorage.setItem('listProducts', JSON.stringify(productList)); // save to local
+                        break
+                    }
+                }
+            }
         }
     }
-    return true
 }
+
 function saveInformation() {
     let idLogin = localStorage.getItem("checkLogin");
     let listUsers = JSON.parse(localStorage.getItem("listUser"));
@@ -141,19 +173,19 @@ function saveInformation() {
             valueAddress: valueAddress,
             valuePhone: valuePhone
         }
-        console.log("infor in local", user.inforCustomer);
-        console.log(user.cartUser);
-        // chinh sua gio hang, va tru trong kho
-        // user.cartUser.length = 0
-        // localStorage.setItem("listUser",JSON.stringify(listUsers))
-
-        user.receipts = [];
-        let productList = JSON.parse(localStorage.getItem('listProducts'));
-        if (!checkCart(productList, user.cartUser)) {
-            console.log("don hang khong hop le")
-        }else {
-            console.log("don hang hop le")
+        let resultCheck = checkStock(user.cartUser);
+        console.log('a ă ớ b c', resultCheck[0], resultCheck[1]);
+        if (!resultCheck[0]) {
+            alert("Sản phẩm có tên: " + resultCheck[1] + " đã hết hàng, hoặc không tồn tại")
+            return;
         }
+        // update stock
+        updateStock(user.cartUser);
+        // save receipt
+            
+        // reset cart
+        // user.cartUser = [];
+        // localStorage.setItem("listUser",JSON.stringify(listUsers)) 
     }
 }
 

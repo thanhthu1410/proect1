@@ -307,3 +307,8 @@ a {
     font-size: 10px;
     text-align: center;
 }
+
+
+#selectOptions {
+    display: none;
+}

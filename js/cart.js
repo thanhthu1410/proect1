@@ -5,8 +5,23 @@ const USDollar = new Intl.NumberFormat('en-US', {
     currency: 'USD',
 })
 
+function getProductInfo(productId, optionId) {
+    let productList = JSON.parse(localStorage.getItem('listProducts'));
+    for (let i in productList) {
+        if (productList[i].id == productId) {
+            for (let j in productList[i].options) {
+                if (optionId ==  productList[i].options[j].id) {
+                    productList[i].imgOption = productList[i].options[j].icon;
+                    break;
+                }
+            }
+            return productList[i]
+        }
+    }
+}
+
 function showCartUser() {
-    console.log("run");
+
     let idLogin = localStorage.getItem("checkLogin");
     let listUsers = JSON.parse(localStorage.getItem("listUser"));
     if (idLogin == null) {
@@ -26,21 +41,21 @@ function showCartUser() {
             document.querySelector(".note").style.display = "none";
             // showCartUser()
             for (let n = 0; n < cartUser.length; n++) {
-
+                let getProductInfoValue = getProductInfo(cartUser[n].productId, cartUser[n].idOption);
                 result +=
                     `
                     <tr>
                         <td>${n + 1}</td>
-                        <td>${cartUser[n].name}</td>
-                        <td><img src="${cartUser[n].img}" alt=""></td>
-                        <td>${USDollar.format(cartUser[n].price)}</td>
+                        <td>${getProductInfoValue.name}</td>
+                        <td><img src="../${getProductInfoValue.imgOption}" alt=""></td>
+                        <td>${USDollar.format(getProductInfoValue.price)}</td>
                         <td class="quantity">
-                            <i onclick="decrease('${cartUser[n].img}', ${n})" class="fa-solid fa-minus"></i>
+                            <i onclick="decrease('${cartUser[n].productId}','${cartUser[n].idOption}' )" class="fa-solid fa-minus"></i>
                             ${cartUser[n].quantity}
-                            <i onclick="increase('${cartUser[n].img}')"" class="fa-sharp fa-regular fa-plus"></i>
+                            <i onclick="increase('${cartUser[n].productId}','${cartUser[n].idOption}')"" class="fa-sharp fa-regular fa-plus"></i>
                         </td>
-                        <td>${USDollar.format(cartUser[n].price * cartUser[n].quantity)}</td>
-                        <td><i class="fa-solid fa-trash-can" onclick="deleteProduct('${cartUser[n].img}')"></i></td>
+                        <td>${USDollar.format(getProductInfoValue.price * cartUser[n].quantity)}</td>
+                        <td><i class="fa-solid fa-trash-can" onclick="deleteProduct('${cartUser[n].productId}','${cartUser[n].idOption}')"></i></td>
                     
                     </tr>
                     `
@@ -73,15 +88,17 @@ function showCartUser() {
 showCartUser();
 
 //function tang so luong san pham
-function increase(imgProduct) {
+function increase(productId, idOption) {
+    console.log("đã vào", productId, idOption)
     let listUser = JSON.parse(localStorage.getItem("listUser"));
     let idLogin = localStorage.getItem("checkLogin");
     for (let i = 0; i < listUser.length; i++) {
         if (idLogin == listUser[i].idUser) {
             for (let j = 0; j < listUser[i].cartUser.length; j++) {
-                if (imgProduct == listUser[i].cartUser[j].img) {
-                    listUser[i].cartUser[j].quantity = ++listUser[i].cartUser[j].quantity;
-                    localStorage.setItem("listUser", JSON.stringify(listUser));
+                if (productId == listUser[i].cartUser[j].productId && idOption == listUser[i].cartUser[j].idOption) {
+                    console.log("đã vào")
+                    listUser[i].cartUser[j].quantity++;
+                    localStorage.setItem("listUser", JSON.stringify(listUser)); // save to local
                     showCartUser();
                     showTotalCartProduct();
                      totalPrice();
@@ -94,46 +111,60 @@ function increase(imgProduct) {
    
     // localStorage.setItem("cartTotal",JSON.stringify())
 }
-function decrease(imgProduct, index) {
+function decrease(productId, idOption) {
     let listUser = JSON.parse(localStorage.getItem("listUser"));
     let idLogin = localStorage.getItem("checkLogin");
     for (let i = 0; i < listUser.length; i++) {
         if (idLogin == listUser[i].idUser) {
-            if (listUser[i].cartUser[index].quantity > 1) {
-                for (let j = 0; j < listUser[i].cartUser.length; j++) {
-                    if (imgProduct == listUser[i].cartUser[j].img) {
-                        listUser[i].cartUser[j].quantity = --listUser[i].cartUser[j].quantity;
-                        localStorage.setItem("listUser", JSON.stringify(listUser));
-                        showCartUser();
-                        showTotalCartProduct();
-                        totalPrice();
-                        return;
+            for (let j = 0; j < listUser[i].cartUser.length; j++) {
+                if (productId == listUser[i].cartUser[j].productId && idOption == listUser[i].cartUser[j].idOption) {
+
+    
+                    if (listUser[i].cartUser[j].quantity == 1) {
+                        if (confirm("Bạn có muốn xóa không ?")) {
+                            listUser[i].cartUser.splice(j, 1);
+                        }
+                    }else {
+                        listUser[i].cartUser[j].quantity--;
                     }
+                    localStorage.setItem("listUser", JSON.stringify(listUser)); // save to local
+                    showCartUser();
+                    showTotalCartProduct();
+                    totalPrice();
+                    return;
                 }
-            } else {
-                deleteProduct(imgProduct);
             }
         }
+
     }
+   
+    // localStorage.setItem("cartTotal",JSON.stringify())
 }
+
 function backArrow() {
     window.location.href = "../index.html"
 }
-function deleteProduct(imgProduct) {
+
+function deleteProduct(productId, idOption) {
     let listUser = JSON.parse(localStorage.getItem("listUser"));
     let idLogin = localStorage.getItem("checkLogin");
 
     for (let i = 0; i < listUser.length; i++) {
         if (idLogin == listUser[i].idUser) {
-            let cartUser = listUser[i].cartUser;
             // lấy cart user ra để lọc những item khác nhau
-            let updatedCart = cartUser.filter((item) => item.img !== imgProduct);
-            listUser[i].cartUser = updatedCart;
-            localStorage.setItem("listUser", JSON.stringify(listUser));
-            showCartUser(JSON.parse(localStorage.getItem("listUser")))
-            showTotalCartProduct();
-             totalPrice();
-            return;
+            for (let j = 0; j < listUser[i].cartUser.length; j++) {
+                if (productId == listUser[i].cartUser[j].productId && idOption == listUser[i].cartUser[j].idOption) {
+
+    
+                    listUser[i].cartUser.splice(j, 1);
+                    localStorage.setItem("listUser", JSON.stringify(listUser)); // save to local
+                    showCartUser();
+                    showTotalCartProduct();
+                    totalPrice();
+                    return;
+                }
+            }
+            return
         }
     }
     
@@ -169,10 +200,10 @@ function totalPrice() {
 
     let cartUser = user.cartUser;
 
-    let totalPrice = cartUser.reduce((totalPrice, curreValue) => {
-        return totalPrice += curreValue.quantity * curreValue.price;
-    }, 0)
-    console.log(totalPrice);
+    let totalPrice = 0;
+    for (let i in cartUser) {
+        totalPrice += getProductInfo(cartUser[i].productId, cartUser[i].idOption).price * cartUser[i].quantity;
+    }
     document.querySelector(".totalPrice").innerHTML = `Subtotal : ${USDollar.format(totalPrice)} `
     // showCartUser()
 

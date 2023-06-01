@@ -762,14 +762,15 @@ let currentPage = 1;
 let toTalItemPage = 6; // Số ảnh hiện thị trong 1 trang
 let start;
 let end;
-
 function showCurrentPage(page) {
     start = (page - 1) * toTalItemPage;
     end = page * toTalItemPage
 }
+
 showCurrentPage(currentPage)
 // function kiểm tra người đăng nhập có phải là admin hay không. 
 // nếu là admin thì hiển thị nút admin để truy cập vào kho hàng
+
 function checkAdmin() {
     let checkAdmin = localStorage.getItem("checkLogin")
 
@@ -779,6 +780,7 @@ function checkAdmin() {
         return;
     }
 }
+
 checkAdmin()
 
 
@@ -791,8 +793,8 @@ function showListPage(a) {
             <li onclick="pageNow(${i})" class="itemPage">${i + 1}</li>
         `
     }
-    document.getElementById("listShowPage").innerHTML = result;
-    document.getElementsByClassName("itemPage")[a].classList.add("active-page")
+    // document.getElementById("listShowPage").innerHTML = result;
+    // document.getElementsByClassName("itemPage")[a].classList.add("active-page")
     showArrowCurrent(currentPage)
 }
 
@@ -922,51 +924,58 @@ function loginNext() {
     window.location.href = "../html/login.html";
 
 }
+
+
 function registerNext() {
     window.location.href = "../html/register.html";
 }
 
 function addCart(idProduct) {
+    let idOptions = document.querySelector('#selectOptions').innerText;
+
+    // kiem tra logion
     let checkIsLogin = localStorage.getItem("checkLogin");
     if (checkIsLogin == null) {
         alert("Chưa đăng nhập - không thể thêm sản phẩm vào giỏ hàng");
         return;
     }
-    let listProducts = JSON.parse(localStorage.getItem("listProducts"));
-    console.log(listProducts)
+
     let listUser = JSON.parse(localStorage.getItem("listUser"));
-    console.log(listUser)
     //khi đã có được list user thì mình dựa vào iduser
     // lấy ra giỏ hàng của user
     for (let i = 0; i < listUser.length; i++) {
+        // lấy ra người dùng
         if (listUser[i].idUser == checkIsLogin) {
-            let cartUser = listUser[i].cartUser;
-            console.log(cartUser);
-            for (let j = 0; j < cartUser.length; j++) {
-                if (cartUser[j].img === document.getElementById("main-image").src) {
-                    cartUser[j].quantity += 1;
-                    localStorage.setItem("listUser", JSON.stringify(listUser));
-                    showTotalCartProduct()
-                    return;
-                }
-            }
-
-            for (let j = 0; j < listProducts.length; j++) {
-
-                if (listProducts[j].id == idProduct) {
-                    let item = {
-                        img: document.getElementById("main-image").src,
-                        name: listProducts[j].name,
-                        price: listProducts[j].price,
-                        quantity: 1
+            console.log("gio hang", listUser[i].cartUser.length)
+            if (listUser[i].cartUser.length == 0) {
+                // gio hang chua co gi
+                listUser[i].cartUser.push({
+                    productId: idProduct,
+                    idOption: idOptions,
+                    quantity: 1
+                })
+            }else {
+                // gio hang da co san pham
+                let flag = false;
+                for (let j in listUser[i].cartUser) {
+                    if (listUser[i].cartUser[j].productId == idProduct && listUser[i].cartUser[j].idOption == idOptions) {
+                        listUser[i].cartUser[j].quantity++;
+                        flag = true;
+                        break;
                     }
-                    cartUser.push(item);
-                    localStorage.setItem("listUser", JSON.stringify(listUser));
-                    showTotalCartProduct();
-                    return;
                 }
-
+                if (!flag) {
+                    listUser[i].cartUser.push({
+                        productId: idProduct,
+                        idOption: idOptions,
+                        quantity: 1
+                    })
+                    flag = false;
+                }
             }
+            localStorage.setItem('listUser', JSON.stringify(listUser)); // save to local
+            showTotalCartProduct();
+            break;
         }
     }
 
@@ -1015,6 +1024,8 @@ function renderTee() {
     showListPage(listRender.length)
 
 }
+
+
 function renderSW() {
     let listProducts = JSON.parse(localStorage.getItem("listProducts"));
     console.log(333);
@@ -1046,7 +1057,6 @@ function renderTS() {
     renderProducts(listRender)
 }
 
-
 function renderBT() {
     console.log(333);
     let listProducts = JSON.parse(localStorage.getItem("listProducts"));
@@ -1061,6 +1071,7 @@ function renderBT() {
     end = 6;
     renderProducts(listRender)
 }
+
 function renderOT() {
     console.log(333);
     let listProducts = JSON.parse(localStorage.getItem("listProducts"));
@@ -1075,6 +1086,7 @@ function renderOT() {
     end = 6;
     renderProducts(listRender)
 }
+
 function renderAC() {
     console.log(333);
     let listProducts = JSON.parse(localStorage.getItem("listProducts"));
@@ -1089,6 +1101,7 @@ function renderAC() {
     end = 6;
     renderProducts(listRender)
 }
+
 function checklogout() {
     let confirmLogout = confirm("Ban co muon thoat khong?")
     if (confirmLogout) {
@@ -1100,6 +1113,7 @@ function checklogout() {
 
     }
 }
+
 function checkLogin() {
     let getLogin = localStorage.getItem("checkLogin");
     if (getLogin == null) {
@@ -1113,17 +1127,17 @@ function checkLogin() {
         return true;
     }
 };
+
 if (checkLogin()) {
     document.getElementsByClassName("logout")[0].style.display = "block";
 };
 
 function renderProductItem(idProduct) {
-    console.log(idProduct);
     let listProductLocal = JSON.parse(localStorage.getItem("listProducts"));
     let productItem = listProductLocal.find((item) => {
         return item.id == idProduct
     })
-    console.log(productItem);
+
     let result = `
     <div class="productContainer">
         <div class="item-left">
@@ -1138,7 +1152,8 @@ function renderProductItem(idProduct) {
                 
             </div>
         <span class="shipping">Free shipping in US for orders over $200 USD</span> <br>
-        <span>Stock Available : ${productItem.stock} items</span>
+        <span>Stock Available : <span id="stockOption">${productItem.options[0].stock}</span> items</span>
+        <p id="selectOptions">${productItem.options[0].id}</p>
         <p><i onclick=addCart('${productItem.id}') class="fa-solid fa-cart-shopping minicart"></i></p>
     </div>
     </div>
@@ -1148,9 +1163,9 @@ function renderProductItem(idProduct) {
 
     let color = document.querySelector(".color");
     let resultColor = "";
-    for (let i = 0; i < productItem.color.length; i++) {
+    for (let j in productItem.options) {
         resultColor += `
-        <img onclick="renderSelectColor(this)" src="${productItem.color[i]}" alt="">
+        <img onclick="renderSelectColor('${productItem.options[j].icon}', '${productItem.options[j].id}', '${productItem.options[j].stock}')" src="${productItem.options[j].icon}" alt="">
         `
     }
     color.innerHTML = `<span> Select Color:</span> <br> ${resultColor}`;
@@ -1223,13 +1238,13 @@ function handleClickOutside(event) {
 
 //function de nguoi dung chon mau 
 
-function renderSelectColor(param) {
-    console.log(param);
-    document.querySelector("#main-image").src = `${param.src}`;
+function renderSelectColor(param, optionId, optionStock) {
+    document.querySelector("#main-image").src = `${param}`;
+    document.querySelector('#selectOptions').innerText = optionId;
+    document.querySelector('#stockOption').innerText = optionStock;
 }
-console.log(document.querySelector("#cart-product"));
-document.querySelector("#cart-product").addEventListener("click", () => {
-    console.log(21111);
-    window.location.href = "../html/cart.html";
 
+
+document.querySelector("#cart-product").addEventListener("click", () => {
+    window.location.href = "../html/cart.html"
 })
